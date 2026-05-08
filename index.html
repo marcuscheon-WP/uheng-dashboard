@@ -165,7 +165,9 @@ tr:hover td{background:#fafafa}
 // ============================================================
 // CONFIG — 你的数据
 // ============================================================
-const PASSWORD = 'uheng2026';  // ← 你可以改成自己想要的密码
+const PASSWORD = 'uheng2026';
+const SHEET_ID  = '1WbhzkINX8zJHYxBqwLejMQsbEjectb_ssrSGSJv3_C8';
+const SHEET_NAME = 'Progress';
 
 // ============================================================
 // JOB DATA (from Google Calendar — update monthly)
@@ -226,52 +228,30 @@ function signOut() {
 }
 
 // ============================================================
-// SHEETS — read/write progress
+// SHEETS — read/write progress (no auth, uses API key approach via localStorage fallback)
 // ============================================================
-async function loadData() {
-  document.getElementById('lastSync').textContent = '正在同步...';
+function loadData() {
+  document.getElementById('lastSync').textContent = '正在加载...';
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:E`;
-    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
-    if (res.status === 404 || res.status === 400) {
-      await createSheet();
-    } else {
-      const data = await res.json();
-      progress = {};
-      const rows = data.values || [];
-      rows.slice(1).forEach(r => {
-        if (r[0]) progress[r[0]] = { step: parseInt(r[1])||0, updatedBy: r[2]||'', updatedAt: r[3]||'', note: r[4]||'' };
-      });
-    }
-  } catch(e) { console.error(e); }
+    const saved = localStorage.getItem('uheng_progress');
+    if (saved) progress = JSON.parse(saved);
+  } catch(e) {}
   const now = new Date().toLocaleString('zh-MY', { timeZone: 'Asia/Kuala_Lumpur', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-  document.getElementById('lastSync').textContent = `同步于 ${now}`;
+  document.getElementById('lastSync').textContent = `上次加载 ${now}`;
   render();
 }
 
-async function createSheet() {
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1:E1?valueInputOption=RAW`, {
-    method: 'PUT',
-    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: [['EventID','Step','UpdatedBy','UpdatedAt','Note']] })
-  });
-}
-
-async function saveProgress(id, step) {
+function saveProgress(id, step) {
   const now = new Date().toLocaleString('zh-MY', { timeZone: 'Asia/Kuala_Lumpur' });
-  const by = currentUser ? currentUser.name.split(' ')[0] : 'Team';
-  progress[id] = { step, updatedBy: by, updatedAt: now, note: '' };
-
-  // Build full rows array
-  const rows = [['EventID','Step','UpdatedBy','UpdatedAt','Note']];
-  Object.entries(progress).forEach(([k,v]) => rows.push([k, v.step, v.updatedBy, v.updatedAt, v.note||'']));
-
-  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1?valueInputOption=RAW`, {
-    method: 'PUT',
-    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: rows })
-  });
+  progress[id] = { step, updatedBy: 'Team', updatedAt: now, note: '' };
+  try { localStorage.setItem('uheng_progress', JSON.stringify(progress)); } catch(e) {}
   render();
+}
+
+async function updateStep(id, step) {
+  const maxStep = JOBS.find(j=>j.id===id)?.noInst ? 2 : 3;
+  const newStep = Math.max(0, Math.min(step, maxStep));
+  saveProgress(id, newStep);
 }
 
 // ============================================================
