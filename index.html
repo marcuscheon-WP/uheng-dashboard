@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uheng Operations Dashboard</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f5f5f5;color:#1a1a1a}
+#loginPage{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f5}
+.login-card{background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:2.5rem;width:360px;text-align:center}
+.login-logo{font-size:28px;margin-bottom:8px}
+.login-title{font-size:18px;font-weight:500;margin-bottom:4px}
+.login-sub{font-size:13px;color:#888;margin-bottom:2rem}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;font-weight:500;color:#333;transition:background .15s}
+.google-btn:hover{background:#f8f8f8}
+.google-btn img{width:18px;height:18px}
+.login-err{color:#c0392b;font-size:12px;margin-top:12px;display:none}
+#app{display:none;padding:16px;max-width:1200px;margin:0 auto}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.hdr-left h1{font-size:16px;font-weight:500}
+.hdr-left p{font-size:12px;color:#888;margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.user-pill{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e0e0e0;border-radius:20px;padding:4px 10px;font-size:12px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
+.btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px;color:#333}
+.btn:hover{background:#f5f5f5}
+.btn-primary{background:#185FA5;color:#fff;border-color:#185FA5}
+.btn-primary:hover{background:#1350880}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.metric{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:12px 14px}
+.metric .lbl{font-size:11px;color:#888;margin-bottom:4px}
+.metric .val{font-size:22px;font-weight:500}
+.metric .val.warn{color:#854F0B}
+.metric .val.ok{color:#0F6E56}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+select{font-size:12px;padding:5px 8px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#333}
+.today-banner{background:#EBF4FF;border:1px solid #B5D4F4;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#185FA5;display:flex;align-items:center;gap:6px}
+.tbl-wrap{background:#fff;border:1px solid #e8e8e8;border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{text-align:left;font-weight:500;font-size:11px;color:#888;padding:8px 12px;border-bottom:1px solid #f0f0f0;background:#fafafa;white-space:nowrap}
+td{padding:0;border-bottom:1px solid #f5f5f5;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.cell{padding:9px 12px}
+.so{font-weight:500;font-size:12px}
+.client{font-size:12px;color:#333}
+.sub-info{font-size:11px;color:#999;margin-top:2px}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.b-uh{background:#E6F1FB;color:#185FA5}
+.b-sg{background:#EEEDFE;color:#534AB7}
+.steps{display:flex;gap:3px;align-items:center;padding:9px 12px}
+.step{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;cursor:pointer;user-select:none}
+.step-dot{width:24px;height:24px;border-radius:50%;border:1.5px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:10px;background:#fff;transition:all .15s;color:#aaa}
+.step-dot:hover{border-color:#378ADD;color:#378ADD}
+.step-dot.done{background:#1D9E75;border-color:#1D9E75;color:#fff}
+.step-dot.active{border-color:#378ADD;color:#378ADD}
+.step-lbl{font-size:9px;color:#aaa;text-align:center;line-height:1.2}
+.step-lbl.done{color:#1D9E75}
+.step-line{flex:1;height:1.5px;background:#eee;margin-bottom:12px}
+.step-line.done{background:#1D9E75}
+.prog-wrap{padding:0 12px 8px}
+.prog-bg{background:#f0f0f0;border-radius:4px;height:3px}
+.prog-bar{height:3px;border-radius:4px;background:#1D9E75;transition:width .3s}
+.fid{font-size:11px;color:#888}
+.fid.overdue{color:#c0392b;font-weight:600}
+.fid.soon{color:#854F0B;font-weight:600}
+.note-tag{font-size:10px;background:#f5f5f5;border-radius:4px;padding:1px 6px;margin-top:3px;display:inline-block;color:#888}
+.updated-by{font-size:10px;color:#aaa;margin-top:2px}
+.empty{text-align:center;padding:3rem;color:#aaa;font-size:13px}
+.loading{text-align:center;padding:3rem;color:#aaa;font-size:13px}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #ddd;border-top-color:#378ADD;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  table{font-size:12px}
+  .hdr{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<!-- Login Page -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">📦</div>
+    <div class="login-title">Uheng Operations</div>
+    <div class="login-sub">Delivery & Installation Dashboard</div>
+    <button class="google-btn" onclick="signIn()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      用 Google 账号登录
+    </button>
+    <div class="login-err" id="loginErr">⚠️ 只限 @uhengmarcca.com 账号登录</div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-left">
+      <h1>Operations Dashboard</h1>
+      <p id="lastSync">正在加载...</p>
+    </div>
+    <div class="hdr-right">
+      <div class="user-pill">
+        <div class="user-avatar" id="userInitials">?</div>
+        <span id="userName">Loading...</span>
+      </div>
+      <button class="btn" onclick="loadData()">↻ 刷新</button>
+      <button class="btn" onclick="signOut()" style="color:#c0392b">退出</button>
+    </div>
+  </div>
+
+  <div id="todayBanner" style="display:none" class="today-banner">
+    🚚 <span id="todayText"></span>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="lbl">总 Jobs</div><div class="val" id="mTotal">—</div></div>
+    <div class="metric"><div class="lbl">备货中</div><div class="val warn" id="mS0">—</div></div>
+    <div class="metric"><div class="lbl">待出货</div><div class="val warn" id="mS1">—</div></div>
+    <div class="metric"><div class="lbl">安装中</div><div class="val warn" id="mS2">—</div></div>
+    <div class="metric"><div class="lbl">完工</div><div class="val ok" id="mS3">—</div></div>
+  </div>
+
+  <div class="filters">
+    <select id="fWeek" onchange="render()">
+      <option value="all">所有日期</option>
+      <option value="this">本周</option>
+      <option value="next">下周</option>
+    </select>
+    <select id="fType" onchange="render()">
+      <option value="all">所有类型</option>
+      <option value="UH">UH (MY)</option>
+      <option value="TR">TR (SG)</option>
+    </select>
+    <select id="fStage" onchange="render()">
+      <option value="all">所有阶段</option>
+      <option value="0">备货中</option>
+      <option value="1">待出货</option>
+      <option value="2">安装中</option>
+      <option value="3">完工</option>
+    </select>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:160px">SO / 客户</th>
+          <th style="width:80px">出货日</th>
+          <th style="width:60px">类型</th>
+          <th style="width:60px">Subcon</th>
+          <th>进度 <span style="font-weight:400;font-size:10px">（点击节点更新）</span></th>
+          <th style="width:80px">FID</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="6" class="loading"><span class="spinner"></span>正在加载...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG — 你的数据
+// ============================================================
+const CLIENT_ID = '1051754131796-soemmh43c1q6eqvise5580uds12td46k.apps.googleusercontent.com';
+const SHEET_ID  = '1WbhzkINX8zJHYxBqwLejMQsbEjectb_ssrSGSJv3_C8';
+const ALLOWED_DOMAIN = 'uhengmarcca.com';
+const SHEET_NAME = 'Progress';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.readonly';
+
+// ============================================================
+// JOB DATA (from Google Calendar — update monthly)
+// ============================================================
+const JOBS = [
+  {id:'q82rd29b68lp82ccpa4ap8dcic',so:'MLSO260040',client:'Tan Jun Quan',type:'UH',subcon:'Guang',date:'2026-05-04',fid:'25/5/2026',note:'Batch 1 — Kitchen + Master Bedroom',noInst:false},
+  {id:'86jdm9pthvpf35bimi3ia15vtk',so:'SO2600112',client:'HOMLUX INTERIOR',type:'UH',subcon:'Guang',date:'2026-05-07',fid:'TBC',note:'',noInst:false},
+  {id:'p0kve30ps6phg4mfa0es2gan6o',so:'MLSO260035',client:'Goh Kwee Hwa',type:'UH',subcon:'5.1',date:'2026-05-09',fid:'4/6/2026',note:'Batch 1 — Kitchen + TV Room',noInst:false},
+  {id:'dbfi1bi54nhqj9kptf6e9ts1v4',so:'SO2600137',client:'SIS SPEEDY',type:'UH',subcon:'206',date:'2026-05-11',fid:'N/A',note:'',noInst:false},
+  {id:'kjghd38qjpf89flmidbt95q4h8',so:'MLSO260040',client:'Tan Jun Quan',type:'UH',subcon:'Guang',date:'2026-05-11',fid:'25/5/2026',note:'Batch 2 — Living Hall',noInst:false},
+  {id:'ojvtn5em2r28l11fol23nmvhr0',so:'SO2600106',client:'V.S. INDUSTRY',type:'UH',subcon:'Yut',date:'2026-05-11',fid:'N/A',note:'Batch 2 — Item 11-20',noInst:false},
+  {id:'a93sscv88gg25qr7k09e9sp1i8',so:'MLSO260035',client:'Goh Kwee Hwa',type:'UH',subcon:'5.3',date:'2026-05-12',fid:'4/6/2026',note:'Batch 2 — Master Bedroom',noInst:false},
+  {id:'u6k69nm1fle3gdrlb119cm3u0o',so:'SO2600142',client:'V.S. INDUSTRY',type:'UH',subcon:'Rey',date:'2026-05-12',fid:'12/05/2026',note:'',noInst:false},
+  {id:'8f0fu1qtjab1lhh3flq6r1bknc',so:'MLSO260035',client:'Goh Kwee Hwa',type:'UH',subcon:'Guang+5.3',date:'2026-05-13',fid:'4/6/2026',note:'Batch 3 — Bedrooms + Living Hall',noInst:false},
+  {id:'qunjl47c132hiqejq1ivj0cs9s',so:'SO2600149',client:'CHEN PROJECTS',type:'UH',subcon:'—',date:'2026-05-13',fid:'13/05/2026',note:'',noInst:true},
+  {id:'mivsfc71m27ovhml0eihnug5hg',so:'SO2600148',client:'DENIKKO CONSTRUCT',type:'TR',subcon:'Yut+Kiao',date:'2026-05-14',fid:'15/05/2026',note:'ETD to SG: 15/05',noInst:true},
+  {id:'4pek4v3o9i26p7klpd2rhfnfbg',so:'MLSO260035',client:'Goh Kwee Hwa',type:'UH',subcon:'Guang',date:'2026-05-15',fid:'4/6/2026',note:'Batch 4 — Dressing Room',noInst:false},
+  {id:'vihes6na2rilfch3bqvb5hfhb8',so:'SO2600147',client:'SENCONIX',type:'UH',subcon:'Zam',date:'2026-05-15',fid:'15/05/2026',note:'',noInst:false},
+  {id:'n2g17o90i0rcegbve1psm54nmk',so:'MLSO260035',client:'Goh Kwee Hwa',type:'UH',subcon:'5.3',date:'2026-05-16',fid:'4/6/2026',note:'Batch 5 — Porch & Foyer',noInst:false},
+  {id:'eo265jvo8plf56udboun7ekifk',so:'SO2600154',client:'HOMLUX INTERIOR',type:'UH',subcon:'Driver',date:'2026-05-19',fid:'19/05/2026',note:'',noInst:true},
+  {id:'54df6t6qvkjudoedjvq4fa1960',so:'SO2600155',client:'FURNITURE REPUBLIC',type:'TR',subcon:'—',date:'2026-05-20',fid:'N/A',note:'',noInst:true},
+  {id:'pfa99iv0k1hcdo8nubn20gscdo',so:'SO2600156',client:'FURNITURE REPUBLIC',type:'TR',subcon:'—',date:'2026-05-20',fid:'N/A',note:'',noInst:true},
+  {id:'sl4fev8cumi3f818vgg6tqk0u8',so:'SO2600153',client:'SUNWAY MARKETING',type:'UH',subcon:'Yut',date:'2026-05-20',fid:'20/05/2026',note:'',noInst:false},
+  {id:'93n8af3nfeovqsmml1gv4cclno',so:'SO2600151',client:'EPOS AI',type:'UH',subcon:'Zam',date:'2026-05-22',fid:'22/05/2026',note:'',noInst:false},
+  {id:'i2p4tvmc4po4iln11fl44718j0',so:'SO2600152',client:'E&O SERVICES',type:'UH',subcon:'Zam',date:'2026-05-22',fid:'22/05/2026',note:'',noInst:false},
+];
+
+const STEPS = ['备货','出货','安装','完工'];
+const today = new Date().toISOString().split('T')[0];
+
+let accessToken = null;
+let progress = {}; // { eventId: { step, updatedBy, updatedAt } }
+let currentUser = null;
+
+// ============================================================
+// AUTH
+// ============================================================
+function signIn() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) return;
+      accessToken = resp.access_token;
+      const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      }).then(r => r.json());
+      const domain = info.email.split('@')[1];
+      if (domain !== ALLOWED_DOMAIN) {
+        accessToken = null;
+        document.getElementById('loginErr').style.display = 'block';
+        return;
+      }
+      currentUser = { name: info.name, email: info.email, picture: info.picture };
+      showApp();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function signOut() {
+  google.accounts.oauth2.revoke(accessToken, () => {
+    accessToken = null; currentUser = null; progress = {};
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loginPage').style.display = 'flex';
+  });
+}
+
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const initials = currentUser.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('userInitials').textContent = initials;
+  document.getElementById('userName').textContent = currentUser.name;
+  loadData();
+}
+
+// ============================================================
+// SHEETS — read/write progress
+// ============================================================
+async function loadData() {
+  document.getElementById('lastSync').textContent = '正在同步...';
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:E`;
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (res.status === 404 || res.status === 400) {
+      await createSheet();
+    } else {
+      const data = await res.json();
+      progress = {};
+      const rows = data.values || [];
+      rows.slice(1).forEach(r => {
+        if (r[0]) progress[r[0]] = { step: parseInt(r[1])||0, updatedBy: r[2]||'', updatedAt: r[3]||'', note: r[4]||'' };
+      });
+    }
+  } catch(e) { console.error(e); }
+  const now = new Date().toLocaleString('zh-MY', { timeZone: 'Asia/Kuala_Lumpur', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  document.getElementById('lastSync').textContent = `同步于 ${now}`;
+  render();
+}
+
+async function createSheet() {
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1:E1?valueInputOption=RAW`, {
+    method: 'PUT',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values: [['EventID','Step','UpdatedBy','UpdatedAt','Note']] })
+  });
+}
+
+async function saveProgress(id, step) {
+  const now = new Date().toLocaleString('zh-MY', { timeZone: 'Asia/Kuala_Lumpur' });
+  const by = currentUser ? currentUser.name.split(' ')[0] : 'Team';
+  progress[id] = { step, updatedBy: by, updatedAt: now, note: '' };
+
+  // Build full rows array
+  const rows = [['EventID','Step','UpdatedBy','UpdatedAt','Note']];
+  Object.entries(progress).forEach(([k,v]) => rows.push([k, v.step, v.updatedBy, v.updatedAt, v.note||'']));
+
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1?valueInputOption=RAW`, {
+    method: 'PUT',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values: rows })
+  });
+  render();
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function getStep(id) {
+  if (progress[id] !== undefined) return progress[id].step;
+  const job = JOBS.find(j => j.id === id);
+  return (job && job.date < today) ? 1 : 0;
+}
+
+function fidClass(fid) {
+  if (!fid || ['—','TBC','N/A'].includes(fid)) return '';
+  const p = fid.split('/');
+  if (p.length === 3) {
+    const d = new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+    const diff = (d - new Date()) / 86400000;
+    if (diff < 0) return 'overdue';
+    if (diff <= 7) return 'soon';
+  }
+  return '';
+}
+
+function getWeekRange(offset) {
+  const d = new Date(), day = d.getDay();
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - (day===0?6:day-1) + offset*7);
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  return [mon.toISOString().split('T')[0], sun.toISOString().split('T')[0]];
+}
+
+function render() {
+  updateMetrics();
+  const week = document.getElementById('fWeek').value;
+  const type = document.getElementById('fType').value;
+  const stage = document.getElementById('fStage').value;
+  let filtered = JOBS.filter(j => {
+    if (type !== 'all' && j.type !== type) return false;
+    if (stage !== 'all' && getStep(j.id) !== parseInt(stage)) return false;
+    if (week === 'this') { const [a,b]=getWeekRange(0); if(j.date<a||j.date>b) return false; }
+    if (week === 'next') { const [a,b]=getWeekRange(1); if(j.date<a||j.date>b) return false; }
+    return true;
+  });
+
+  const todayJobs = JOBS.filter(j => j.date === today);
+  const banner = document.getElementById('todayBanner');
+  if (todayJobs.length) {
+    banner.style.display = 'flex';
+    document.getElementById('todayText').textContent = `今日出货 ${todayJobs.length} 单：${todayJobs.map(j=>j.so).join('、')}`;
+  } else { banner.style.display = 'none'; }
+
+  const tb = document.getElementById('tbody');
+  if (!filtered.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">没有符合条件的 Job</td></tr>'; return; }
+
+  tb.innerHTML = filtered.map(j => {
+    const step = getStep(j.id);
+    const maxSteps = j.noInst ? 3 : 4;
+    const pct = Math.round(step / (maxSteps-1) * 100);
+    const fc = fidClass(j.fid);
+    const prog = progress[j.id];
+    const updatedInfo = prog ? `<div class="updated-by">${prog.updatedBy} · ${prog.updatedAt}</div>` : '';
+    const isPast = j.date < today && step < (j.noInst?2:3);
+
+    const stepHtml = STEPS.map((lbl, i) => {
+      if (j.noInst && i === 2) return '';
+      const isDone = step > i;
+      const isActive = step === i;
+      const cls = isDone ? 'done' : (isActive ? 'active' : '');
+      const icon = isDone ? '✓' : (i+1);
+      const lineCls = isDone ? 'done' : '';
+      const lblCls = isDone ? 'done' : '';
+      const nextStep = isDone ? i : i+1;
+      const line = (i < 3 && !(j.noInst && i===1)) ? `<div class="step-line ${lineCls}"></div>` : '';
+      return `<div class="step" onclick="updateStep('${j.id}', ${isDone ? i : i+1})" title="${isDone?'撤回':'完成'} ${lbl}">
+        <div class="step-dot ${cls}">${icon}</div>
+        <div class="step-lbl ${lblCls}">${lbl}</div>
+      </div>${line}`;
+    }).join('');
+
+    return `<tr style="${isPast?'background:#fffbf5':''}">
+      <td><div class="cell"><div class="so">${j.so}</div><div class="client">${j.client}</div>${j.note?`<div class="note-tag">${j.note.length>40?j.note.substring(0,38)+'…':j.note}</div>`:''}${updatedInfo}</div></td>
+      <td><div class="cell"><div style="font-weight:500">${j.date}</div>${j.date===today?'<span class="badge b-uh" style="margin-top:3px">今日</span>':''}</div></td>
+      <td><div class="cell"><span class="badge ${j.type==='TR'?'b-sg':'b-uh'}">${j.type}</span></div></td>
+      <td><div class="cell" style="font-size:12px">${j.subcon}</div></td>
+      <td><div class="steps">${stepHtml}</div><div class="prog-wrap"><div class="prog-bg"><div class="prog-bar" style="width:${pct}%"></div></div></div></td>
+      <td><div class="cell"><div class="fid ${fc}">${j.fid}</div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateMetrics() {
+  document.getElementById('mTotal').textContent = JOBS.length;
+  document.getElementById('mS0').textContent = JOBS.filter(j=>getStep(j.id)===0).length;
+  document.getElementById('mS1').textContent = JOBS.filter(j=>getStep(j.id)===1).length;
+  document.getElementById('mS2').textContent = JOBS.filter(j=>getStep(j.id)===2).length;
+  document.getElementById('mS3').textContent = JOBS.filter(j=>getStep(j.id)===3).length;
+}
+
+async function updateStep(id, step) {
+  if (!accessToken) return;
+  const maxStep = JOBS.find(j=>j.id===id)?.noInst ? 2 : 3;
+  const newStep = Math.max(0, Math.min(step, maxStep));
+  await saveProgress(id, newStep);
+}
+</script>
+</body>
+</html>
