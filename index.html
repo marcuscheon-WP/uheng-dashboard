@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Uheng Operations Dashboard</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f5f5f5;color:#1a1a1a}
@@ -87,11 +87,9 @@ tr:hover td{background:#fafafa}
     <div class="login-logo">📦</div>
     <div class="login-title">Uheng Operations</div>
     <div class="login-sub">Delivery & Installation Dashboard</div>
-    <button class="google-btn" onclick="signIn()">
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
-      用 Google 账号登录
-    </button>
-    <div class="login-err" id="loginErr">⚠️ 只限 @uhengmarcca.com 账号登录</div>
+    <input type="password" id="pwInput" placeholder="输入密码" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:10px;text-align:center" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="google-btn" onclick="checkPw()" style="justify-content:center">进入 →</button>
+    <div class="login-err" id="loginErr">⚠️ 密码错误，请重试</div>
   </div>
 </div>
 
@@ -167,11 +165,7 @@ tr:hover td{background:#fafafa}
 // ============================================================
 // CONFIG — 你的数据
 // ============================================================
-const CLIENT_ID = '1051754131796-soemmh43c1q6eqvise5580uds12td46k.apps.googleusercontent.com';
-const SHEET_ID  = '1WbhzkINX8zJHYxBqwLejMQsbEjectb_ssrSGSJv3_C8';
-const ALLOWED_DOMAIN = 'uhengmarcca.com';
-const SHEET_NAME = 'Progress';
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.readonly';
+const PASSWORD = 'uheng2026';  // ← 你可以改成自己想要的密码
 
 // ============================================================
 // JOB DATA (from Google Calendar — update monthly)
@@ -207,46 +201,28 @@ let progress = {}; // { eventId: { step, updatedBy, updatedAt } }
 let currentUser = null;
 
 // ============================================================
-// AUTH
+// AUTH — Password
 // ============================================================
-function signIn() {
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: async (resp) => {
-      if (resp.error) return;
-      accessToken = resp.access_token;
-      const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: 'Bearer ' + accessToken }
-      }).then(r => r.json());
-      const domain = info.email.split('@')[1];
-      if (domain !== ALLOWED_DOMAIN) {
-        accessToken = null;
-        document.getElementById('loginErr').style.display = 'block';
-        return;
-      }
-      currentUser = { name: info.name, email: info.email, picture: info.picture };
-      showApp();
-    }
-  });
-  client.requestAccessToken();
+function checkPw() {
+  const val = document.getElementById('pwInput').value;
+  if (val === PASSWORD) {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('userInitials').textContent = '👤';
+    document.getElementById('userName').textContent = 'Team';
+    loadData();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
 }
 
 function signOut() {
-  google.accounts.oauth2.revoke(accessToken, () => {
-    accessToken = null; currentUser = null; progress = {};
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('loginPage').style.display = 'flex';
-  });
-}
-
-function showApp() {
-  document.getElementById('loginPage').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  const initials = currentUser.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-  document.getElementById('userInitials').textContent = initials;
-  document.getElementById('userName').textContent = currentUser.name;
-  loadData();
+  progress = {};
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('pwInput').value = '';
 }
 
 // ============================================================
