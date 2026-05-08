@@ -249,7 +249,11 @@ function saveProgress(id, step) {
 }
 
 async function updateStep(id, step) {
-  const maxStep = JOBS.find(j=>j.id===id)?.noInst ? 2 : 3;
+  const job = JOBS.find(j => j.id === id);
+  if (!job) return;
+  const maxStep = job.noInst ? 2 : 3;
+  const current = getStep(id);
+  // clicking current active step = go forward, clicking done step = go back
   const newStep = Math.max(0, Math.min(step, maxStep));
   saveProgress(id, newStep);
 }
@@ -325,7 +329,8 @@ function render() {
       const lblCls = isDone ? 'done' : '';
       const nextStep = isDone ? i : i+1;
       const line = (i < 3 && !(j.noInst && i===1)) ? `<div class="step-line ${lineCls}"></div>` : '';
-      return `<div class="step" onclick="updateStep('${j.id}', ${isDone ? i : i+1})" title="${isDone?'撤回':'完成'} ${lbl}">
+      const clickStep = isDone ? i : i + 1;
+    return `<div class="step" onclick="updateStep('${j.id}', ${clickStep})" title="${isDone?'撤回':'完成'} ${lbl}" style="cursor:pointer">
         <div class="step-dot ${cls}">${icon}</div>
         <div class="step-lbl ${lblCls}">${lbl}</div>
       </div>${line}`;
